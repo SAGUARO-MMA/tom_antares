@@ -520,7 +520,119 @@ class AntaresDataService(BaseDataService):
         return AntaresForm
 
     def build_query_parameters(self, parameters, **kwargs):
-        return self.query_parameters
+        data = {
+            'ztfid': parameters.get('ztfid'),
+            'antid': parameters.get('antid'),
+            'elsquery': parameters.get('esquery'),
+            'filters': []
+        }
+
+        # Filter on number of observations
+        nobs_gt = parameters.get('nobs__gt')
+        nobs_lt = parameters.get('nobs__lt')
+        if nobs_gt or nobs_lt:
+            nobs_range = {'range': {'properties.num_mag_values': {}}}
+            if nobs_gt:
+                nobs_range['range']['properties.num_mag_values']['gte'] = nobs_gt
+            if nobs_lt:
+                nobs_range['range']['properties.num_mag_values']['lte'] = nobs_lt
+            data['filters'].append(nobs_range)
+
+        # Filter data by date
+        last_day = parameters.get('last_day')
+        mjd_gt = parameters.get('mjd__gt')
+        mjd_lt = parameters.get('mjd__lt')
+        if last_day:
+            # Set range to last 24 hours
+            ut = Time(datetime.now(tz=timezone.utc), scale='utc')
+            mjd_range = {
+                'range': {
+                    'properties.newest_alert_observation_time': {
+                        'lte': ut.mjd,
+                        'gte': ut.mjd - 1.0,
+                    }
+                }
+            }
+            data['filters'].append(mjd_range)
+        else:
+            if mjd_lt:
+                # Set upper MJD time for alerts
+                mjd_lt_range = {
+                    'range': {
+                        'properties.newest_alert_observation_time': {'lte': mjd_lt}
+                    }
+                }
+                data['filters'].append(mjd_lt_range)
+            if mjd_gt:
+                # Set oldest MJD time for alerts
+                mjd_gt_range = {
+                    'range': {
+                        'properties.oldest_alert_observation_time': {'gte': mjd_gt}
+                    }
+                }
+                data['filters'].append(mjd_gt_range)
+
+        # Filter on Magnitude
+        mag_min = parameters.get('mag__min')
+        mag_max = parameters.get('mag__max')
+        if mag_min or mag_max:
+            mag_range = {'range': {'properties.newest_alert_magnitude': {}}}
+            if mag_min:
+                mag_range['range']['properties.newest_alert_magnitude'][
+                    'gte'
+                ] = mag_min
+            if mag_max:
+                mag_range['range']['properties.newest_alert_magnitude'][
+                    'lte'
+                ] = mag_max
+            data['filters'].append(mag_range)
+
+        # Filter by Coordinates
+        sra = parameters.get('ra')
+        sdec = parameters.get('dec')
+        ssr = parameters.get('sr')
+        if sra and ssr:  # TODO: add cross-field validation
+            ra_range = {'range': {'ra': {'gte': sra - ssr, 'lte': sra + ssr}}}
+            data['filters'].append(ra_range)
+
+        if sdec and ssr:  # TODO: add cross-field validation
+            dec_range = {'range': {'dec': {'gte': sdec - ssr, 'lte': sdec + ssr}}}
+            data['filters'].append(dec_range)
+
+        # Filter on Tags
+        tags = parameters.get('tag')
+        if tags:
+            data['filters'].append({'terms': {'tags': tags}})
+
+        self.query_parameters = data
+        return data
 
     def query_service(self, data, **kwargs):
+        if data['ztfid']:
+            self.query_results = get_by_ztf_object_id(data['ztfid'])
+            return self.query_results
+        elif data['antid']:
+            self.query_results = get_by_id(data['antid'])
+            return self.query_results
+        elif data['elsquery']:
+            self.query_results = antares_client.search.search(data['elsquery'])
+            return self.query_results
+        filter_query = {'query': {'bool': {'filter': data['filters']}}}
+        self.query_results = antares_client.search.search(filter_query)
         return self.query_results
+
+    def query_targets(self, data):
+        loci = super().query_targets(data)
+        results = []
+        if isinstance(loci, antares_client.models.Locus):
+            loci=[loci]
+        for i, locus in enumerate(loci):
+            result = {'name': locus.properties['ztf_object_id'],
+                       'ra': locus.ra,
+                       'dec': locus.dec,
+                       'mag': locus.properties.get('newest_alert_magnitude', ''),
+            }
+            results.append(result)
+            if i > 20:
+                break
+        return results
