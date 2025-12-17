@@ -623,7 +623,7 @@ class AntaresDataService(BaseDataService):
 
     def query_targets(self, data):
         loci = super().query_targets(data)
-        results = []
+        targets = []
         if isinstance(loci, antares_client.models.Locus):
             loci=[loci]
         for i, locus in enumerate(loci):
@@ -632,7 +632,22 @@ class AntaresDataService(BaseDataService):
                        'dec': locus.dec,
                        'mag': locus.properties.get('newest_alert_magnitude', ''),
             }
-            results.append(result)
+            targets.append(result)
             if i > 20:
                 break
-        return results
+        self.target_results = targets
+        return targets
+
+    def create_target_from_query(self, target_result, **kwargs):
+        """Create a new target from the query results
+        :returns: target object
+        :rtype: `Target`
+        """
+
+        target = Target(
+            name=target_result['name'],
+            type='SIDEREAL',
+            ra=target_result['ra'],
+            dec=target_result['dec']
+        )
+        return target
