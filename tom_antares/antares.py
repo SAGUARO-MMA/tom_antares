@@ -627,16 +627,41 @@ class AntaresDataService(BaseDataService):
         if isinstance(loci, antares_client.models.Locus):
             loci=[loci]
         for i, locus in enumerate(loci):
-            result = {'name': locus.properties['ztf_object_id'],
-                       'ra': locus.ra,
-                       'dec': locus.dec,
-                       'mag': locus.properties.get('newest_alert_magnitude', ''),
+            result = {'name': locus.locus_id,
+                      'ra': locus.ra,
+                      'dec': locus.dec,
+                      'mag': locus.properties.get('newest_alert_magnitude', ''),
+                      'tags': locus.tags,
+                      'aliases': self.query_aliases(data, locus=locus)
             }
+            self.query_photometry(data, locus)
             targets.append(result)
             if i > 20:
                 break
         self.target_results = targets
         return targets
+
+    def query_aliases(self, query_parameters, locus=None, **kwargs):
+        """Set up and run a specialized query for retrieving alternate names from a DataService."""
+        if not locus:
+            locus = self.query_results or super().query_aliases(query_parameters)
+        aliases = []
+        for id_key in ['ztf_object_id']:
+            alias = locus.properties.get(id_key)
+            if alias:
+                aliases.append(alias)
+
+        return aliases
+
+    def query_photometry(self, query_parameters, locus=None, **kwargs):
+        """Convert the lightcurve pandas dataframe into a list of dictionaries."""
+        if not locus:
+            locus = self.query_results or super().query_photometry(query_parameters)
+
+        lightcurve = locus.lightcurve.to_dict('records')
+
+        self.photometry_results[locus.locus_id] = lightcurve
+        return lightcurve
 
     def create_target_from_query(self, target_result, **kwargs):
         """Create a new target from the query results
@@ -651,3 +676,25 @@ class AntaresDataService(BaseDataService):
             dec=target_result['dec']
         )
         return target
+
+    def create_aliases_from_query(self, target_results, **kwargs):
+        """Create new TargetNames from the query results
+        :returns: list of aliases to be added to a new Target
+        :rtype: `list`
+        """
+        aliases = []
+        for alias in target_results['aliases']:
+            aliases.append(TargetName(name=alias))
+        return aliases
+
+    def create_reduced_datums_from_query(self, target, data=None, data_type=None, **kwargs):
+        """Create and save new reduced_datums of the appropriate data_type from the query results"""
+
+        for datum in data:
+            print(datum)
+            # reduced_datum = ReducedDatum(
+            #     target=target,
+            #     data_type=data_type,
+            #     source_name='Antares'
+
+            # )
