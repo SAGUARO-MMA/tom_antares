@@ -48,6 +48,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip setuptools wheel
+          python -m pip install "poetry>=2.0,<3.0"
           poetry install --with coverage,lint
       - name: Run Tests
         run: coverage run --include=tom_antares/antares.py tom_antares/tests/run_tests.py
