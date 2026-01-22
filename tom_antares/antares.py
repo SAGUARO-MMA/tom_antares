@@ -1,4 +1,5 @@
 import logging
+import json
 
 import antares_client
 import marshmallow
@@ -11,6 +12,7 @@ from django import forms
 from tom_dataservices.dataservices import BaseDataService
 from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_targets.models import Target, TargetName
+from tom_dataproducts.models import ReducedDatum
 
 from tom_antares.forms import AntaresForm
 
@@ -632,9 +634,9 @@ class AntaresDataService(BaseDataService):
                       'dec': locus.dec,
                       'mag': locus.properties.get('newest_alert_magnitude', ''),
                       'tags': locus.tags,
-                      'aliases': self.query_aliases(data, locus=locus)
+                      'aliases': self.query_aliases(data, locus=locus),
+                      'reduced_datums': {'photometry': self.query_photometry(data, locus)}
             }
-            self.query_photometry(data, locus)
             targets.append(result)
             if i > 20:
                 break
@@ -658,7 +660,7 @@ class AntaresDataService(BaseDataService):
         if not locus:
             locus = self.query_results or super().query_photometry(query_parameters)
 
-        lightcurve = locus.lightcurve.to_dict('records')
+        lightcurve = locus.lightcurve.to_json(orient='records')
 
         self.photometry_results[locus.locus_id] = lightcurve
         return lightcurve
@@ -690,11 +692,18 @@ class AntaresDataService(BaseDataService):
     def create_reduced_datums_from_query(self, target, data=None, data_type=None, **kwargs):
         """Create and save new reduced_datums of the appropriate data_type from the query results"""
 
+        new_reduced_datums = []
+        data = json.loads(data)
         for datum in data:
-            print(datum)
-            # reduced_datum = ReducedDatum(
-            #     target=target,
-            #     data_type=data_type,
-            #     source_name='Antares'
+            datum['magnitude'] = datum['ant_mag']
+            datum['error'] = datum['ant_magerr']
+            datum['limit'] = datum['ant_maglim']
+            datum['filter'] = datum['ant_passband']
 
-            # )
+            ReducedDatum.objects.get_or_create(
+                target=target,
+                timestamp=Time(datum['time'], format='iso', scale='utc').datetime,
+                data_type=data_type,
+                source_name='Antares',
+                value=datum
+            )
