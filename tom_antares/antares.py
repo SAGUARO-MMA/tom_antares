@@ -521,6 +521,10 @@ class AntaresDataService(BaseDataService):
     def get_form_class(cls):
         return AntaresForm
 
+    def get_simple_form_partial(self):
+        """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
+        return 'tom_antares/partials/antares_simple_form'
+
     def build_query_parameters(self, parameters, **kwargs):
         data = {
             'ztfid': parameters.get('ztfid'),
@@ -627,7 +631,7 @@ class AntaresDataService(BaseDataService):
         loci = super().query_targets(data)
         targets = []
         if isinstance(loci, antares_client.models.Locus):
-            loci=[loci]
+            loci = [loci]
         for i, locus in enumerate(loci):
             result = {'name': locus.locus_id,
                       'ra': locus.ra,
@@ -636,7 +640,7 @@ class AntaresDataService(BaseDataService):
                       'tags': locus.tags,
                       'aliases': self.query_aliases(data, locus=locus),
                       'reduced_datums': {'photometry': self.query_photometry(data, locus)}
-            }
+                      }
             targets.append(result)
             if i > 20:
                 break
@@ -692,7 +696,6 @@ class AntaresDataService(BaseDataService):
     def create_reduced_datums_from_query(self, target, data=None, data_type=None, **kwargs):
         """Create and save new reduced_datums of the appropriate data_type from the query results"""
 
-        new_reduced_datums = []
         data = json.loads(data)
         for datum in data:
             datum['magnitude'] = datum['ant_mag']
