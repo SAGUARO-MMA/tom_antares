@@ -1,4 +1,5 @@
 import logging
+from typing import List, Tuple, Dict
 
 import antares_client
 import marshmallow
@@ -467,7 +468,8 @@ class ANTARESBroker(GenericBroker):
     def process_reduced_data(self, target, alert=None):
         pass
 
-    def to_target(self, alert: dict) -> Target:
+    def to_target(self, alert: dict) -> Tuple[Target, Dict[str, str], List[str]]:
+        """Create a target and aliases from an alert"""
         target = Target.objects.create(
             name=alert['properties']['ztf_object_id'],
             type='SIDEREAL',
