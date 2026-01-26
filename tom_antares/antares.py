@@ -525,6 +525,10 @@ class AntaresDataService(BaseDataService):
         """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
         return 'tom_antares/partials/antares_simple_form'
 
+    def get_advanced_form_partial(self):
+        """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
+        return 'tom_antares/partials/antares_advanced_form'
+
     def build_query_parameters(self, parameters, **kwargs):
         data = {
             'ztfid': parameters.get('ztfid'),
