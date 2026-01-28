@@ -475,13 +475,17 @@ class ANTARESBroker(GenericBroker):
 
     def to_target(self, alert: dict) -> Target:
         target = Target.objects.create(
-            name=alert['properties']['ztf_object_id'],
+            name=alert['locus_id'],
             type='SIDEREAL',
             ra=alert['ra'],
             dec=alert['dec'],
         )
         antares_name = TargetName(target=target, name=alert['locus_id'])
         aliases = [antares_name]
+        if 'ztf' in alert['properties']['survey']:  
+            aliases+=alert['properties']['survey']['ztf']['id']
+        if 'lsst' in alert['properties']['survey']:  #TODO: make sure this is how antares formats LSST alerts
+            aliases+=alert['properties']['survey']['lsst']['id']
         if alert['properties'].get(
             'horizons_targetname'
         ):  # TODO: review if any other target names need to be created
