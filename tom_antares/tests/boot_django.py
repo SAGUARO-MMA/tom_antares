@@ -48,6 +48,7 @@ def boot_django():
             'tom_catalogs',
             'tom_observations',
             'tom_dataproducts',
+            'tom_dataservices',
             APP_NAME,  # defined above
         ),
         SITE_ID=1,

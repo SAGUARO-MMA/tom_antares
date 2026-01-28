@@ -1,4 +1,5 @@
 import logging
+import json
 from typing import List, Tuple, Dict
 
 import antares_client
@@ -8,8 +9,13 @@ from astropy.time import Time, TimezoneInfo
 from datetime import datetime, timezone
 from crispy_forms.layout import HTML, Div, Fieldset, Layout
 from django import forms
+
+from tom_dataservices.dataservices import BaseDataService
 from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_targets.models import Target, TargetName
+from tom_dataproducts.models import ReducedDatum
+
+from tom_antares.forms import AntaresForm
 
 logger = logging.getLogger(__name__)
 
@@ -325,12 +331,12 @@ class ANTARESBroker(GenericBroker):
 
     @classmethod
     def alert_to_dict(cls, locus):
-        '''
+        """
         Note: The ANTARES API returns a Locus object, which in the TOM Toolkit
         would otherwise be called an alert.
 
         This method serializes the Locus into a dict so that it can be cached by the view.
-        '''
+        """
         return {
             'locus_id': locus.locus_id,
             'ra': locus.ra,
@@ -503,3 +509,212 @@ class ANTARESBroker(GenericBroker):
             mag=alert['properties'].get('newest_alert_magnitude', ''),
             score=alert['alerts'][-1]['properties'].get('ztf_rb', ''),
         )
+
+
+class AntaresDataService(BaseDataService):
+    """
+        The ``AntaresDataService``
+    """
+    name = 'Antares'
+    info_url = 'https://nsf-noirlab.gitlab.io/csdc/antares/client/tutorial/searching.html'
+    # query_results_table = 'tom_dataservices/tns/partials/tns_query_results_table.html'
+
+    @classmethod
+    def get_form_class(cls):
+        return AntaresForm
+
+    def get_simple_form_partial(self):
+        """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
+        return 'tom_antares/partials/antares_simple_form'
+
+    def get_advanced_form_partial(self):
+        """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
+        return 'tom_antares/partials/antares_advanced_form'
+
+    def build_query_parameters(self, parameters, **kwargs):
+        data = {
+            'ztfid': parameters.get('ztfid'),
+            'antid': parameters.get('antid'),
+            'elsquery': parameters.get('esquery'),
+            'filters': []
+        }
+
+        # Filter on number of observations
+        nobs_gt = parameters.get('nobs__gt')
+        nobs_lt = parameters.get('nobs__lt')
+        if nobs_gt or nobs_lt:
+            nobs_range = {'range': {'properties.num_mag_values': {}}}
+            if nobs_gt:
+                nobs_range['range']['properties.num_mag_values']['gte'] = nobs_gt
+            if nobs_lt:
+                nobs_range['range']['properties.num_mag_values']['lte'] = nobs_lt
+            data['filters'].append(nobs_range)
+
+        # Filter data by date
+        last_day = parameters.get('last_day')
+        mjd_gt = parameters.get('mjd__gt')
+        mjd_lt = parameters.get('mjd__lt')
+        if last_day:
+            # Set range to last 24 hours
+            ut = Time(datetime.now(tz=timezone.utc), scale='utc')
+            mjd_range = {
+                'range': {
+                    'properties.newest_alert_observation_time': {
+                        'lte': ut.mjd,
+                        'gte': ut.mjd - 1.0,
+                    }
+                }
+            }
+            data['filters'].append(mjd_range)
+        else:
+            if mjd_lt:
+                # Set upper MJD time for alerts
+                mjd_lt_range = {
+                    'range': {
+                        'properties.newest_alert_observation_time': {'lte': mjd_lt}
+                    }
+                }
+                data['filters'].append(mjd_lt_range)
+            if mjd_gt:
+                # Set oldest MJD time for alerts
+                mjd_gt_range = {
+                    'range': {
+                        'properties.oldest_alert_observation_time': {'gte': mjd_gt}
+                    }
+                }
+                data['filters'].append(mjd_gt_range)
+
+        # Filter on Magnitude
+        mag_min = parameters.get('mag__min')
+        mag_max = parameters.get('mag__max')
+        if mag_min or mag_max:
+            mag_range = {'range': {'properties.newest_alert_magnitude': {}}}
+            if mag_min:
+                mag_range['range']['properties.newest_alert_magnitude'][
+                    'gte'
+                ] = mag_min
+            if mag_max:
+                mag_range['range']['properties.newest_alert_magnitude'][
+                    'lte'
+                ] = mag_max
+            data['filters'].append(mag_range)
+
+        # Filter by Coordinates
+        sra = parameters.get('ra')
+        sdec = parameters.get('dec')
+        ssr = parameters.get('sr')
+        if sra and ssr:  # TODO: add cross-field validation
+            ra_range = {'range': {'ra': {'gte': sra - ssr, 'lte': sra + ssr}}}
+            data['filters'].append(ra_range)
+
+        if sdec and ssr:  # TODO: add cross-field validation
+            dec_range = {'range': {'dec': {'gte': sdec - ssr, 'lte': sdec + ssr}}}
+            data['filters'].append(dec_range)
+
+        # Filter on Tags
+        tags = parameters.get('tag')
+        if tags:
+            data['filters'].append({'terms': {'tags': tags}})
+
+        data['max_objects'] = parameters.get('max_alerts', 20)
+
+        self.query_parameters = data
+        return data
+
+    def query_service(self, data, **kwargs):
+        if data['ztfid']:
+            self.query_results = get_by_ztf_object_id(data['ztfid'])
+            return self.query_results
+        elif data['antid']:
+            self.query_results = get_by_id(data['antid'])
+            return self.query_results
+        elif data['elsquery']:
+            self.query_results = antares_client.search.search(data['elsquery'])
+            return self.query_results
+        filter_query = {'query': {'bool': {'filter': data['filters']}}}
+        self.query_results = antares_client.search.search(filter_query)
+        return self.query_results
+
+    def query_targets(self, data):
+        loci = super().query_targets(data)
+        targets = []
+        if isinstance(loci, antares_client.models.Locus):
+            loci = [loci]
+        for i, locus in enumerate(loci):
+            result = {'name': locus.locus_id,
+                      'ra': locus.ra,
+                      'dec': locus.dec,
+                      'mag': locus.properties.get('newest_alert_magnitude', ''),
+                      'tags': locus.tags,
+                      'aliases': self.query_aliases(data, locus=locus),
+                      'reduced_datums': {'photometry': self.query_photometry(data, locus)}
+                      }
+            targets.append(result)
+            if i+1 == data.get('max_objects', 20):
+                break
+        self.target_results = targets
+        return targets
+
+    def query_aliases(self, query_parameters, locus=None, **kwargs):
+        """Set up and run a specialized query for retrieving alternate names from a DataService."""
+        if not locus:
+            locus = self.query_results or super().query_aliases(query_parameters)
+        aliases = []
+        for id_key in ['ztf_object_id']:
+            alias = locus.properties.get(id_key)
+            if alias:
+                aliases.append(alias)
+
+        return aliases
+
+    def query_photometry(self, query_parameters, locus=None, **kwargs):
+        """Convert the lightcurve pandas dataframe into a list of dictionaries."""
+        if not locus:
+            locus = self.query_results or super().query_photometry(query_parameters)
+
+        lightcurve = locus.lightcurve.to_json(orient='records')
+
+        self.photometry_results[locus.locus_id] = lightcurve
+        return lightcurve
+
+    def create_target_from_query(self, target_result, **kwargs):
+        """Create a new target from the query results
+        :returns: target object
+        :rtype: `Target`
+        """
+
+        target = Target(
+            name=target_result['name'],
+            type='SIDEREAL',
+            ra=target_result['ra'],
+            dec=target_result['dec']
+        )
+        return target
+
+    def create_aliases_from_query(self, target_results, **kwargs):
+        """Create new TargetNames from the query results
+        :returns: list of aliases to be added to a new Target
+        :rtype: `list`
+        """
+        aliases = []
+        for alias in target_results['aliases']:
+            aliases.append(TargetName(name=alias))
+        return aliases
+
+    def create_reduced_datums_from_query(self, target, data=None, data_type=None, **kwargs):
+        """Create and save new reduced_datums of the appropriate data_type from the query results"""
+
+        data = json.loads(data)
+        for datum in data:
+            datum['magnitude'] = datum['ant_mag']
+            datum['error'] = datum['ant_magerr']
+            datum['limit'] = datum['ant_maglim']
+            datum['filter'] = datum['ant_passband']
+
+            ReducedDatum.objects.get_or_create(
+                target=target,
+                timestamp=Time(datum['time'], format='iso', scale='utc').datetime,
+                data_type=data_type,
+                source_name='Antares',
+                value=datum
+            )
