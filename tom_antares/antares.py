@@ -473,26 +473,40 @@ class ANTARESBroker(GenericBroker):
     def process_reduced_data(self, target, alert=None):
         pass
 
-    def to_target(self, alert: dict) -> Target:
+    def to_target(self, alert: dict, **kwargs) -> Target:
         target = Target.objects.create(
             name=alert['locus_id'],
             type='SIDEREAL',
             ra=alert['ra'],
             dec=alert['dec'],
+            **kwargs
         )
+        aliases = self.aliases_from_locus(alert, target)
+        return target, [], aliases
+
+    def aliases_from_locus(self, alert, target):
         antares_name = TargetName(target=target, name=alert['locus_id'])
         aliases = [antares_name]
         if 'ztf' in alert['properties']['survey']:  
-            aliases+=alert['properties']['survey']['ztf']['id']
+            aliases+=[
+                TargetName(name=name, target=target)
+                for name in alert['properties']['survey']['ztf']['id']
+            ]
         if 'lsst' in alert['properties']['survey']:  #TODO: make sure this is how antares formats LSST alerts
-            aliases+=alert['properties']['survey']['lsst']['id']
+            aliases+=[
+                TargetName(name=name, target=target)
+                for name in alert['properties']['survey']['lsst']['id']
+            ]
         if alert['properties'].get(
-            'horizons_targetname'
+                'horizons_targetname'
         ):  # TODO: review if any other target names need to be created
             aliases.append(
-                TargetName(name=alert['properties'].get('horizons_targetname'))
+                TargetName(
+                    name=alert['properties'].get('horizons_targetname'),
+                    target=target
+                )
             )
-        return target, [], aliases
+        return aliases
 
     def to_generic_alert(self, alert):
         url = f'{ANTARES_BASE_URL}/loci/{alert["locus_id"]}'
