@@ -86,7 +86,7 @@ class AntaresForm(BaseQueryForm):
         label='Elastic Search query in JSON format',
         widget=forms.Textarea(attrs={'placeholder': '{"query":{}}'}),
     )
-    max_alerts = forms.FloatField(
+    max_alerts = forms.IntegerField(
         label='Maximum number of alerts to fetch',
         widget=forms.TextInput(attrs={'placeholder': 'Max Alerts'}),
         min_value=1,

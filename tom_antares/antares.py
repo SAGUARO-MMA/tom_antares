@@ -614,6 +614,8 @@ class AntaresDataService(BaseDataService):
         if tags:
             data['filters'].append({'terms': {'tags': tags}})
 
+        data['max_objects'] = parameters.get('max_alerts', 20)
+
         self.query_parameters = data
         return data
 
@@ -646,7 +648,7 @@ class AntaresDataService(BaseDataService):
                       'reduced_datums': {'photometry': self.query_photometry(data, locus)}
                       }
             targets.append(result)
-            if i > 20:
+            if i+1 == data.get('max_objects', 20):
                 break
         self.target_results = targets
         return targets
