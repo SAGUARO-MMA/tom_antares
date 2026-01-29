@@ -489,7 +489,7 @@ class ANTARESBroker(GenericBroker):
                 value['error'] = datum['properties']['ant_magerr']
             ReducedDatum.objects.get_or_create(
                 target=target,
-                timestamp=Time(datum['properties']['ant_mjd'], format='mjd').datetime,
+                timestamp=Time(datum['properties']['ant_mjd'], format='mjd').to_datetime(timezone=TimezoneInfo()),
                 data_type='photometry',
                 source_name=f"{self.surveys[datum['properties']['ant_survey']]} (ANTARES)",
                 value=value,
@@ -749,7 +749,7 @@ class AntaresDataService(BaseDataService):
 
             ReducedDatum.objects.get_or_create(
                 target=target,
-                timestamp=Time(datum['time'], format='iso', scale='utc').datetime,
+                timestamp=Time(datum['time'], format='iso', scale='utc').to_datetime(timezone=TimezoneInfo()),
                 data_type=data_type,
                 source_name='Antares',
                 value=datum
