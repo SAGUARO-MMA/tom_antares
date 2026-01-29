@@ -40,6 +40,7 @@ def run_handler(topic, locus):
     logger.info(f"Target matches: {target_matches}")
     
     broker = ANTARESBroker()
+    alert = broker.alert_to_dict(locus)
     
     if target_matches.count():
         # then this target already exists in the Targets table
@@ -48,12 +49,14 @@ def run_handler(topic, locus):
         logger.info(f"Found existing target matching this alert: {target.name}")
         
         # update the TargetName objects returned to instead point to the existing target
-        aliases = broker.aliases_from_locus(locus.__dict__, target)
+        aliases = broker.aliases_from_locus(alert, target)
         
     else:
         # then this target does not exist, so we create it from scratch
         logger.info(f"No existing target found, adding as new target")
-        target, _, aliases = broker.to_target(locus.__dict__)
+        target, _, aliases = broker.to_target(alert)
+
+    broker.process_reduced_data(target, alert)
 
     # save the aliases that we found for this target
     logger.info(f"Adding {aliases} to {target}")

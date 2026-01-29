@@ -328,6 +328,10 @@ class ANTARESBrokerForm(GenericQueryForm):
 class ANTARESBroker(GenericBroker):
     name = 'ANTARES'
     form = ANTARESBrokerForm
+    surveys = {
+        1: 'ZTF',
+        2: 'LSST',
+    }  # currently guessing what this means
 
     @classmethod
     def alert_to_dict(cls, locus):
@@ -470,9 +474,23 @@ class ANTARESBroker(GenericBroker):
         alert = get_by_id(id_)
         return alert
 
-    # TODO: This function
     def process_reduced_data(self, target, alert=None):
-        pass
+        if alert is None:
+            return
+
+        for datum in alert['alerts']:
+            ReducedDatum.objects.get_or_create(
+                target=target,
+                timestamp=Time(datum['properties']['ant_mjd'], format='mjd').datetime,
+                data_type=data_type,
+                source_name=f"{self.surveys[datum['properties']['ant_survey']]} (ANTARES)",
+                value={
+                    'magnitude': datum['properties']['ant_mag'],
+                    'error': datum['properties']['ant_magerr'],
+                    'limit': datum['properties']['ant_maglim'],
+                    'filter': datum['properties']['ant_passband'],
+                }
+            )
 
     def to_target(self, alert: dict) -> Tuple[Target, Dict[str, str], List[str]]:
         """Create a target and aliases from an alert"""
