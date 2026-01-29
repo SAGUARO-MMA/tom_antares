@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from crispy_forms.layout import HTML, Div, Fieldset, Layout
 from django import forms
 
+from tom_antares import __version__
 from tom_dataservices.dataservices import BaseDataService
 from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_targets.models import Target, TargetName
@@ -517,7 +518,8 @@ class AntaresDataService(BaseDataService):
     """
     name = 'Antares'
     info_url = 'https://nsf-noirlab.gitlab.io/csdc/antares/client/tutorial/searching.html'
-    # query_results_table = 'tom_dataservices/tns/partials/tns_query_results_table.html'
+    app_version = __version__
+    app_link = 'https://github.com/TOMToolkit/tom_antares'
 
     @classmethod
     def get_form_class(cls):
