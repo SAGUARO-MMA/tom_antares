@@ -504,27 +504,25 @@ class ANTARESBroker(GenericBroker):
         return target, [], aliases
 
     def aliases_from_locus(self, alert, target):
-        antares_name = TargetName(target=target, name=alert['locus_id'])
-        aliases = [antares_name]
+        aliases = []
+        if target.name != alert['locus_id']:
+            aliases.append(TargetName(target=target, name=alert['locus_id']))
         if 'ztf' in alert['properties']['survey']:
-            aliases+=[
-                TargetName(name=name, target=target)
+            aliases += [
+                TargetName(target=target, name=name)
                 for name in alert['properties']['survey']['ztf']['id']
             ]
         if 'lsst' in alert['properties']['survey']:  #TODO: make sure this is how antares formats LSST alerts
             logger.info(alert)
-            aliases+=[
-                TargetName(name=name, target=target)
+            aliases += [
+                TargetName(target=target, name=name)
                 for name in alert['properties']['survey']['lsst']['dia_object_id']
             ]
         if alert['properties'].get(
             'horizons_targetname'
-        ):  # TODO: review if any other target names need to be created
+        ):
             aliases.append(
-                TargetName(
-                    name=alert['properties'].get('horizons_targetname'),
-                    target=target
-                )
+                TargetName(target=target, name=alert['properties'].get('horizons_targetname'))
             )
         return target, {}, aliases
 
