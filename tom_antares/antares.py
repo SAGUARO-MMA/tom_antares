@@ -479,17 +479,20 @@ class ANTARESBroker(GenericBroker):
             return
 
         for datum in alert['alerts']:
+            value = {
+                'limit': datum['properties']['ant_maglim'],
+                'filter': datum['properties']['ant_passband'],
+            }
+            if 'ant_mag' in datum['properties']:
+                value['magnitude'] = datum['properties']['ant_mag']
+            if 'ant_magerr' in datum['properties']:
+                value['error'] = datum['properties']['ant_magerr']
             ReducedDatum.objects.get_or_create(
                 target=target,
                 timestamp=Time(datum['properties']['ant_mjd'], format='mjd').datetime,
                 data_type='photometry',
                 source_name=f"{self.surveys[datum['properties']['ant_survey']]} (ANTARES)",
-                value={
-                    'magnitude': datum['properties']['ant_mag'],
-                    'error': datum['properties']['ant_magerr'],
-                    'limit': datum['properties']['ant_maglim'],
-                    'filter': datum['properties']['ant_passband'],
-                }
+                value=value,
             )
 
     def to_target(self, alert: dict) -> Tuple[Target, Dict[str, str], List[str]]:
