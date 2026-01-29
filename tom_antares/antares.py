@@ -518,7 +518,7 @@ class ANTARESBroker(GenericBroker):
                 for name in alert['properties']['survey']['lsst']['dia_object_id']
             ]
         if alert['properties'].get(
-                'horizons_targetname'
+            'horizons_targetname'
         ):  # TODO: review if any other target names need to be created
             aliases.append(
                 TargetName(
