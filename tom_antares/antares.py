@@ -493,9 +493,10 @@ class ANTARESBroker(GenericBroker):
                 for name in alert['properties']['survey']['ztf']['id']
             ]
         if 'lsst' in alert['properties']['survey']:  #TODO: make sure this is how antares formats LSST alerts
+            logger.info(alert)
             aliases+=[
                 TargetName(name=name, target=target)
-                for name in alert['properties']['survey']['lsst']['id']
+                for name in alert['properties']['survey']['lsst']['dia_object_id']
             ]
         if alert['properties'].get(
                 'horizons_targetname'

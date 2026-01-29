@@ -61,6 +61,21 @@ def run_handler(topic, locus):
     # save the aliases that we found for this target
     logger.info(f"Adding {aliases} to {target}")
     for alias in aliases:
-        if not TargetName.objects.filter(name = alias.name).exists():
+        existing_alias = TargetName.objects.filter(name=alias.name)
+        if not existing_alias.exists():
             alias.save()
+        elif TargetName.objects.filter(
+            name=alias.name
+        ).exclude(
+            target=target
+        ).exists():
+            # this will happen if the alias exists under a different target
+            # than the one we are trying to save it with
+            # in which case we should log a warning
+            logger.warning(
+                f"The name alias {alias.name} exists under the target " +
+                f" {existing_alias.first().target}, which is different from the nearest " + 
+                f"target in the existing database (which is {target}). We are "+
+                "NOT re-assigning this alias!"
+            )
     
