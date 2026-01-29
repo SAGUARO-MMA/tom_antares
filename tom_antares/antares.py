@@ -504,7 +504,7 @@ class ANTARESBroker(GenericBroker):
             dec=alert['dec'],
         )
         aliases = self.aliases_from_locus(alert, target)
-        return target, [], aliases
+        return target, {}, aliases
 
     def aliases_from_locus(self, alert, target):
         aliases = []
@@ -526,7 +526,7 @@ class ANTARESBroker(GenericBroker):
             aliases.append(
                 TargetName(target=target, name=alert['properties'].get('horizons_targetname'))
             )
-        return target, {}, aliases
+        return aliases
 
     def to_generic_alert(self, alert):
         url = f'{ANTARES_BASE_URL}/loci/{alert["locus_id"]}'
