@@ -1,5 +1,6 @@
 import logging
 import json
+from typing import List, Tuple, Dict
 
 import antares_client
 import marshmallow
@@ -473,13 +474,13 @@ class ANTARESBroker(GenericBroker):
     def process_reduced_data(self, target, alert=None):
         pass
 
-    def to_target(self, alert: dict, **kwargs) -> Target:
+    def to_target(self, alert: dict) -> Tuple[Target, Dict[str, str], List[str]]:
+        """Create a target and aliases from an alert"""
         target = Target.objects.create(
             name=alert['locus_id'],
             type='SIDEREAL',
             ra=alert['ra'],
             dec=alert['dec'],
-            **kwargs
         )
         aliases = self.aliases_from_locus(alert, target)
         return target, [], aliases
@@ -487,7 +488,7 @@ class ANTARESBroker(GenericBroker):
     def aliases_from_locus(self, alert, target):
         antares_name = TargetName(target=target, name=alert['locus_id'])
         aliases = [antares_name]
-        if 'ztf' in alert['properties']['survey']:  
+        if 'ztf' in alert['properties']['survey']:
             aliases+=[
                 TargetName(name=name, target=target)
                 for name in alert['properties']['survey']['ztf']['id']
@@ -507,7 +508,7 @@ class ANTARESBroker(GenericBroker):
                     target=target
                 )
             )
-        return aliases
+        return target, {}, aliases
 
     def to_generic_alert(self, alert):
         url = f'{ANTARES_BASE_URL}/loci/{alert["locus_id"]}'
@@ -633,6 +634,8 @@ class AntaresDataService(BaseDataService):
         if tags:
             data['filters'].append({'terms': {'tags': tags}})
 
+        data['max_objects'] = parameters.get('max_alerts', 20)
+
         self.query_parameters = data
         return data
 
@@ -665,7 +668,7 @@ class AntaresDataService(BaseDataService):
                       'reduced_datums': {'photometry': self.query_photometry(data, locus)}
                       }
             targets.append(result)
-            if i > 20:
+            if i+1 == data.get('max_objects', 20):
                 break
         self.target_results = targets
         return targets

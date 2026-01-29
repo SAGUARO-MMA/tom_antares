@@ -53,10 +53,7 @@ def run_handler(topic, locus):
     else:
         # then this target does not exist, so we create it from scratch
         logger.info(f"No existing target found, adding as new target")
-        target, _, aliases = broker.to_target(
-            locus.__dict__,
-            permissions = "PUBLIC"
-        )
+        target, _, aliases = broker.to_target(locus.__dict__)
 
     # save the aliases that we found for this target
     logger.info(f"Adding {aliases} to {target}")
