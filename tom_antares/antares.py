@@ -330,8 +330,10 @@ class ANTARESBroker(GenericBroker):
     form = ANTARESBrokerForm
     surveys = {
         1: 'ZTF',
-        2: 'LSST',
-    }  # currently guessing what this means
+        2: 'ZTF',
+        3: 'DECAT',
+        4: 'LSST',
+    }  # see antares_devkit.models.SURVEYS
 
     @classmethod
     def alert_to_dict(cls, locus):
