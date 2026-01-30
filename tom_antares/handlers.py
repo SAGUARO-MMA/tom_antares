@@ -32,7 +32,7 @@ def find_existing_targets(locus, cone_search_radius_arcsec:float=2) -> QuerySet:
     )
 
 
-def run_handler(topic, locus):
+def run_handler(locus):
     """
     Ingests the locus into a new target object (or updates an existing one)
     """
@@ -79,3 +79,4 @@ def run_handler(topic, locus):
                 "NOT re-assigning this alias!"
             )
     
+    return target
