@@ -32,7 +32,7 @@ def find_existing_targets(locus, cone_search_radius_arcsec:float=2) -> QuerySet:
     )
 
 
-def handle_alert(locus):
+def run_handler(locus):
     """
     Ingests the locus into a new target object (or updates an existing one)
     """
@@ -78,3 +78,5 @@ def handle_alert(locus):
                 f"target in the existing database (which is {target}). We are "+
                 "NOT re-assigning this alias!"
             )
+    
+    return target
