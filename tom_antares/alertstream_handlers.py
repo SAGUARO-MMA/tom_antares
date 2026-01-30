@@ -32,7 +32,7 @@ def find_existing_targets(locus, cone_search_radius_arcsec:float=2) -> QuerySet:
     )
 
 
-def run_handler(locus):
+def handle_alert(locus):
     """
     Ingests the locus into a new target object (or updates an existing one)
     """
@@ -41,12 +41,13 @@ def run_handler(locus):
     
     broker = ANTARESBroker()
     alert = broker.alert_to_dict(locus)
-    
+
     if target_matches.count():
         # then this target already exists in the Targets table
         target = target_matches.order_by("separation").first()
 
         logger.info(f"Found existing target matching this alert: {target.name}")
+        created = False
         
         # update the TargetName objects returned to instead point to the existing target
         aliases = broker.aliases_from_locus(alert, target)
@@ -55,15 +56,18 @@ def run_handler(locus):
         # then this target does not exist, so we create it from scratch
         logger.info(f"No existing target found, adding as new target")
         target, _, aliases = broker.to_target(alert)
-
+        created = True
+        
     broker.process_reduced_data(target, alert)
 
     # save the aliases that we found for this target
     logger.info(f"Adding {aliases} to {target}")
+    aliases_added = []
     for alias in aliases:
         existing_alias = TargetName.objects.filter(name=alias.name)
         if not existing_alias.exists():
             alias.save()
+            aliases_added.append(alias.name)
         elif TargetName.objects.filter(
             name=alias.name
         ).exclude(
@@ -79,4 +83,4 @@ def run_handler(locus):
                 "NOT re-assigning this alias!"
             )
     
-    return target
+    return target, created, aliases_added
