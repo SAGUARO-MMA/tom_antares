@@ -2,8 +2,9 @@ from datetime import datetime, timezone
 
 from django.test import TestCase
 from unittest import mock
+import numpy as np
 
-from tom_antares.antares import ANTARESBroker
+from tom_antares.antares import ANTARESBroker, AntaresDataService
 from tom_antares.tests.factories import LocusFactory
 from tom_targets.models import Target
 
@@ -70,3 +71,77 @@ class TestANTARESBrokerClass(TestCase):
         mock_client.search.search.side_effect = lambda loci: iter(self.loci)
         alerts = ANTARESBroker().fetch_alerts({'antid': 'ANT2025v5k9wxb6vzbe'})
         self.assertEqual(len(list(alerts)), 1)
+
+
+class TestAntaresDataservice(TestCase):
+    """
+    Test the functionality of the Antares Dataservice
+    NOTE: to run these tests in your venv: python ./tom_antares/tests/run_tests.py
+    """
+
+    def setUp(self):
+        self.antares_query = AntaresDataService()
+
+    def test_build_query_parameters(self):
+        """
+        Test that we properly construct filters for antares query.
+        """
+        form_parameters = {'query_save': True,
+                           'query_name': 'a mess',
+                           'data_service': 'Antares',
+                           'ztfid': 'ZTF_name',
+                           'antid': 'Ant_name',
+                           'tag': ['lc_feature_extractor', 'sso_candidates'],
+                           'nobs__gt': 10,
+                           'nobs__lt': 100,
+                           'ra': 12.0,
+                           'dec': 12.0,
+                           'sr': 12.0,
+                           'mjd__gt': 61000.0,
+                           'mjd__lt': 61005.0,
+                           'last_day': False,
+                           'mag__min': 2.0,
+                           'mag__max': 10.0,
+                           'esquery': None,
+                           'max_alerts': 20
+                           }
+        expected_query_parameters = {'ztfid': 'ZTF_name',
+                                     'antid': 'Ant_name',
+                                     'elsquery': None,
+                                     'filters': [{'range': {'properties.num_mag_values': {'gte': 10, 'lte': 100}}},
+                                                 {'range': {'properties.newest_alert_observation_time':
+                                                            {'lte': 61005.0}}
+                                                  },
+                                                 {'range': {'properties.oldest_alert_observation_time':
+                                                            {'gte': 61000.0}}
+                                                  },
+                                                 {'range': {'properties.newest_alert_magnitude':
+                                                            {'gte': 2.0, 'lte': 10.0}
+                                                            }
+                                                  },
+                                                 {'range': {'ra': {'gte': 0.0, 'lte': 24.0}}},
+                                                 {'range': {'dec': {'gte': 0.0, 'lte': 24.0}}},
+                                                 {'terms': {'tags': ['lc_feature_extractor', 'sso_candidates']}}
+                                                 ],
+                                     'max_objects': 20
+                                     }
+        query_parameters = self.antares_query.build_query_parameters(form_parameters)
+        self.assertEqual(query_parameters, expected_query_parameters)
+
+    def test_query_targets(self):
+        pass
+
+    def test_query_aliases(self):
+        pass
+
+    def test_query_photometry(self):
+        pass
+
+    def test_create_target_from_query(self):
+        pass
+
+    def test_create_aliases_from_query(self):
+        pass
+
+    def test_create_reduced_datums_from_query(self):
+        pass

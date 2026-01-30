@@ -638,20 +638,21 @@ class AntaresDataService(BaseDataService):
     def query_targets(self, data):
         loci = super().query_targets(data)
         targets = []
-        if isinstance(loci, antares_client.models.Locus):
-            loci = [loci]
-        for i, locus in enumerate(loci):
-            result = {'name': locus.locus_id,
-                      'ra': locus.ra,
-                      'dec': locus.dec,
-                      'mag': locus.properties.get('newest_alert_magnitude', ''),
-                      'tags': locus.tags,
-                      'aliases': self.query_aliases(data, locus=locus),
-                      'reduced_datums': {'photometry': self.query_photometry(data, locus)}
-                      }
-            targets.append(result)
-            if i+1 == data.get('max_objects', 20):
-                break
+        if loci:
+            if isinstance(loci, antares_client.models.Locus):
+                loci = [loci]
+            for i, locus in enumerate(loci):
+                result = {'name': locus.locus_id,
+                        'ra': locus.ra,
+                        'dec': locus.dec,
+                        'mag': locus.properties.get('newest_alert_magnitude', ''),
+                        'tags': locus.tags,
+                        'aliases': self.query_aliases(data, locus=locus),
+                        'reduced_datums': {'photometry': self.query_photometry(data, locus)}
+                        }
+                targets.append(result)
+                if i+1 == data.get('max_objects', 20):
+                    break
         self.target_results = targets
         return targets
 
