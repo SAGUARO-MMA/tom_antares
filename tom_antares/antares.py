@@ -643,13 +643,13 @@ class AntaresDataService(BaseDataService):
                 loci = [loci]
             for i, locus in enumerate(loci):
                 result = {'name': locus.locus_id,
-                        'ra': locus.ra,
-                        'dec': locus.dec,
-                        'mag': locus.properties.get('newest_alert_magnitude', ''),
-                        'tags': locus.tags,
-                        'aliases': self.query_aliases(data, locus=locus),
-                        'reduced_datums': {'photometry': self.query_photometry(data, locus)}
-                        }
+                          'ra': locus.ra,
+                          'dec': locus.dec,
+                          'mag': locus.properties.get('newest_alert_magnitude', ''),
+                          'tags': locus.tags,
+                          'aliases': self.query_aliases(data, locus=locus),
+                          'reduced_datums': {'photometry': self.query_photometry(data, locus)}
+                          }
                 targets.append(result)
                 if i+1 == data.get('max_objects', 20):
                     break
