@@ -129,6 +129,7 @@ class TestAntaresDataservice(TestCase):
         self.assertEqual(query_parameters, expected_query_parameters)
 
     def test_query_targets(self):
+        
         pass
 
     def test_query_aliases(self):
