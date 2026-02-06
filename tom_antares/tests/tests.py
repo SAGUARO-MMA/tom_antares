@@ -3,10 +3,11 @@ from datetime import datetime, timezone
 from django.test import TestCase
 from unittest import mock
 import numpy as np
+from antares_client.models import Locus
 
 from tom_antares.antares import ANTARESBroker, AntaresDataService
-from tom_antares.tests.factories import LocusFactory
-from tom_targets.models import Target
+from tom_antares.tests.factories import LocusFactory, lightcurve_data
+from tom_targets.models import Target, TargetName
 
 
 class TestANTARESBrokerClass(TestCase):
@@ -80,7 +81,12 @@ class TestAntaresDataservice(TestCase):
     """
 
     def setUp(self):
+        self.test_target = Target.objects.create(name='ZTF20achooum')
         self.antares_query = AntaresDataService()
+        self.loci = [LocusFactory.create() for i in range(0, 5)]
+        self.locus = self.loci[0]
+        self.locus_id = 'ANT2025v5k9wxb6vzbe'
+        self.tag = 'in_m31'
 
     def test_build_query_parameters(self):
         """
@@ -128,21 +134,59 @@ class TestAntaresDataservice(TestCase):
         query_parameters = self.antares_query.build_query_parameters(form_parameters)
         self.assertEqual(query_parameters, expected_query_parameters)
 
-    def test_query_targets(self):
-        
-        pass
+    @mock.patch('tom_antares.antares.get_by_id')
+    def test_query_targets_single(self, mock_client):
+        mock_client.side_effect = [self.locus]
+        targets = self.antares_query.query_targets({'antid': 'Ant_name'})
+        expected_target_results = {'name': self.locus.locus_id,
+                                    'ra': self.locus.ra,
+                                    'dec': self.locus.dec,
+                                    'mag': '',
+                                    'tags': [],
+                                    'aliases': [self.locus.properties.get('ztf_object_id')],
+                                    'reduced_datums': {'photometry': lightcurve_data}}
+        for target in targets:
+            for key in target.keys():
+                self.assertEqual(target[key], expected_target_results[key])
 
-    def test_query_aliases(self):
-        pass
+    @mock.patch('antares_client.search.search')
+    def test_query_targets_many(self, mock_client):
+        mock_client.side_effect = lambda loci: iter(self.loci)
+        targets = self.antares_query.query_targets({'max_objects': 4})
+        self.assertEqual(len(targets), 4)
 
-    def test_query_photometry(self):
-        pass
+    @mock.patch('tom_antares.antares.get_by_id')
+    def test_query_aliases(self, mock_client):
+        mock_client.side_effect = [self.locus]
+        aliases = self.antares_query.query_aliases({'antid': 'Ant_name'})
+        self.assertEqual(aliases, [self.locus.properties.get('ztf_object_id')])
+
+    @mock.patch('tom_antares.antares.get_by_id')
+    def test_query_photometry(self, mock_client):
+        mock_client.side_effect = [self.locus]
+        phot_data = self.antares_query.query_photometry({'antid': 'Ant_name'}, self.locus)
+        expected_phot = lightcurve_data
+        self.assertEqual(phot_data, expected_phot)
 
     def test_create_target_from_query(self):
-        pass
+        target_results = {'name': self.locus.locus_id,
+                          'ra': self.locus.ra,
+                          'dec': self.locus.dec,
+                          'mag': '',
+                          'tags': [],
+                          'aliases': [self.locus.properties.get('ztf_object_id')],
+                          'reduced_datums': {'photometry': lightcurve_data}}
+        target = self.antares_query.create_target_from_query(target_results)
+        self.assertIsInstance(target, Target)
 
     def test_create_aliases_from_query(self):
-        pass
+        aliases_results = ['ztf_name', 'other_name']
+        aliases = self.antares_query.create_aliases_from_query(aliases_results)
+        for alias in aliases:
+            self.assertIsInstance(alias, TargetName)
 
     def test_create_reduced_datums_from_query(self):
-        pass
+        reduced_data = self.antares_query.create_reduced_datums_from_query(self.test_target, lightcurve_data)
+        for i, reduced_datum in enumerate(reduced_data):
+            for key in ['magnitude', 'error', 'limit', 'filter']:
+                self.assertIn(key, reduced_datum.value)

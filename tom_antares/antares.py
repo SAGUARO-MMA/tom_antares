@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from crispy_forms.layout import HTML, Div, Fieldset, Layout
 from django import forms
 
-from tom_dataservices.dataservices import BaseDataService
+from tom_dataservices.dataservices import DataService
 from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_targets.models import Target, TargetName
 from tom_dataproducts.models import ReducedDatum
@@ -511,7 +511,7 @@ class ANTARESBroker(GenericBroker):
         )
 
 
-class AntaresDataService(BaseDataService):
+class AntaresDataService(DataService):
     """
         The ``AntaresDataService``
     """
@@ -622,21 +622,21 @@ class AntaresDataService(BaseDataService):
         return data
 
     def query_service(self, data, **kwargs):
-        if data['ztfid']:
+        if data.get('ztfid'):
             self.query_results = get_by_ztf_object_id(data['ztfid'])
             return self.query_results
-        elif data['antid']:
+        elif data.get('antid'):
             self.query_results = get_by_id(data['antid'])
             return self.query_results
-        elif data['elsquery']:
+        elif data.get('elsquery'):
             self.query_results = antares_client.search.search(data['elsquery'])
             return self.query_results
-        filter_query = {'query': {'bool': {'filter': data['filters']}}}
+        filter_query = {'query': {'bool': {'filter': data.get('filters',[])}}}
         self.query_results = antares_client.search.search(filter_query)
         return self.query_results
 
     def query_targets(self, data):
-        loci = super().query_targets(data)
+        loci = self.query_service(data)
         targets = []
         if loci:
             if isinstance(loci, antares_client.models.Locus):
@@ -659,7 +659,7 @@ class AntaresDataService(BaseDataService):
     def query_aliases(self, query_parameters, locus=None, **kwargs):
         """Set up and run a specialized query for retrieving alternate names from a DataService."""
         if not locus:
-            locus = self.query_results or super().query_aliases(query_parameters)
+            locus = self.query_results or self.query_service(query_parameters)
         aliases = []
         for id_key in ['ztf_object_id']:
             alias = locus.properties.get(id_key)
@@ -671,9 +671,9 @@ class AntaresDataService(BaseDataService):
     def query_photometry(self, query_parameters, locus=None, **kwargs):
         """Convert the lightcurve pandas dataframe into a list of dictionaries."""
         if not locus:
-            locus = self.query_results or super().query_photometry(query_parameters)
+            locus = self.query_results or self.query_service(query_parameters)
 
-        lightcurve = locus.lightcurve.to_json(orient='records')
+        lightcurve = json.loads(locus.lightcurve.to_json(orient='records'))
 
         self.photometry_results[locus.locus_id] = lightcurve
         return lightcurve
@@ -692,30 +692,33 @@ class AntaresDataService(BaseDataService):
         )
         return target
 
-    def create_aliases_from_query(self, target_results, **kwargs):
+    def create_aliases_from_query(self, alias_results, **kwargs):
         """Create new TargetNames from the query results
         :returns: list of aliases to be added to a new Target
         :rtype: `list`
         """
         aliases = []
-        for alias in target_results['aliases']:
+        for alias in alias_results:
             aliases.append(TargetName(name=alias))
         return aliases
 
-    def create_reduced_datums_from_query(self, target, data=None, data_type=None, **kwargs):
+    def create_reduced_datums_from_query(self, target, data=None, data_type='photometry', **kwargs):
         """Create and save new reduced_datums of the appropriate data_type from the query results"""
 
-        data = json.loads(data)
+        reduced_datums = []
         for datum in data:
-            datum['magnitude'] = datum['ant_mag']
-            datum['error'] = datum['ant_magerr']
-            datum['limit'] = datum['ant_maglim']
-            datum['filter'] = datum['ant_passband']
+            datum_details = dict(datum)
+            datum_details['magnitude'] = datum['ant_mag']
+            datum_details['error'] = datum['ant_magerr']
+            datum_details['limit'] = datum['ant_maglim']
+            datum_details['filter'] = datum['ant_passband']
 
-            ReducedDatum.objects.get_or_create(
+            reduced_datum, __ = ReducedDatum.objects.get_or_create(
                 target=target,
                 timestamp=Time(datum['time'], format='iso', scale='utc').datetime,
                 data_type=data_type,
                 source_name='Antares',
-                value=datum
+                value=datum_details
             )
+            reduced_datums.append(reduced_datum)
+        return reduced_datums
