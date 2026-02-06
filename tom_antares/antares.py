@@ -631,7 +631,7 @@ class AntaresDataService(DataService):
         elif data.get('elsquery'):
             self.query_results = antares_client.search.search(data['elsquery'])
             return self.query_results
-        filter_query = {'query': {'bool': {'filter': data.get('filters',[])}}}
+        filter_query = {'query': {'bool': {'filter': data.get('filters', [])}}}
         self.query_results = antares_client.search.search(filter_query)
         return self.query_results
 

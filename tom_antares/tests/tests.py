@@ -2,8 +2,6 @@ from datetime import datetime, timezone
 
 from django.test import TestCase
 from unittest import mock
-import numpy as np
-from antares_client.models import Locus
 
 from tom_antares.antares import ANTARESBroker, AntaresDataService
 from tom_antares.tests.factories import LocusFactory, lightcurve_data
@@ -139,12 +137,12 @@ class TestAntaresDataservice(TestCase):
         mock_client.side_effect = [self.locus]
         targets = self.antares_query.query_targets({'antid': 'Ant_name'})
         expected_target_results = {'name': self.locus.locus_id,
-                                    'ra': self.locus.ra,
-                                    'dec': self.locus.dec,
-                                    'mag': '',
-                                    'tags': [],
-                                    'aliases': [self.locus.properties.get('ztf_object_id')],
-                                    'reduced_datums': {'photometry': lightcurve_data}}
+                                   'ra': self.locus.ra,
+                                   'dec': self.locus.dec,
+                                   'mag': '',
+                                   'tags': [],
+                                   'aliases': [self.locus.properties.get('ztf_object_id')],
+                                   'reduced_datums': {'photometry': lightcurve_data}}
         for target in targets:
             for key in target.keys():
                 self.assertEqual(target[key], expected_target_results[key])
