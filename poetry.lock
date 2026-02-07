@@ -1099,6 +1099,25 @@ django = "*"
 typing-extensions = "*"
 
 [[package]]
+name = "django-tables2"
+version = "2.8.0"
+description = "Table/data-grid framework for Django"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+markers = "sys_platform == \"win32\" or sys_platform == \"emscripten\" or sys_platform != \"win32\" and sys_platform != \"emscripten\""
+files = [
+    {file = "django_tables2-2.8.0-py3-none-any.whl", hash = "sha256:860633b0f448216af73fca6005c7e38dc9b46931dc36c08a9281a71ee250b1ee"},
+    {file = "django_tables2-2.8.0.tar.gz", hash = "sha256:0dea3401bb99a0164ba09e20d59a7d90856fdc05e5ae2da9a14d0fa14d99257c"},
+]
+
+[package.dependencies]
+django = ">=4.2"
+
+[package.extras]
+tablib = ["tablib"]
+
+[[package]]
 name = "django-tasks"
 version = "0.6.1"
 description = "An implementation and backport of background workers and tasks in Django"
@@ -2676,15 +2695,15 @@ files = [
 
 [[package]]
 name = "tomtoolkit"
-version = "2.30.1"
+version = "2.31.0"
 description = "TOM Toolkit and base modules"
 optional = false
 python-versions = "<3.14,>=3.10.0"
 groups = ["main"]
 markers = "sys_platform == \"win32\" or sys_platform == \"emscripten\" or sys_platform != \"win32\" and sys_platform != \"emscripten\""
 files = [
-    {file = "tomtoolkit-2.30.1-py3-none-any.whl", hash = "sha256:98cf432bcfad85add02b08ac7c2a4df9b567864ae953172399756f9c7eb2779e"},
-    {file = "tomtoolkit-2.30.1.tar.gz", hash = "sha256:22dbafa34a5a0b6a9443061069d3de90456689c364c6fc040ea3836ac8f27eca"},
+    {file = "tomtoolkit-2.31.0-py3-none-any.whl", hash = "sha256:ad624323331f6fe93d775c3110633b6b91fca4663a69026e0e3ddb004e430f78"},
+    {file = "tomtoolkit-2.31.0.tar.gz", hash = "sha256:9b9b89698606a92a3e66f97e651dc3d2d13966f8135b1b38bbe86738ee7621f4"},
 ]
 
 [package.dependencies]
@@ -2703,6 +2722,7 @@ django-filter = ">=23,<25"
 django-gravatar2 = ">=1.0.0,<2.0.0"
 django-guardian = ">=2.0.0,<3.0.0"
 django-htmx = ">=1.0.0,<2.0.0"
+django-tables2 = "<3"
 django-tasks = ">=0.6.1,<0.7.0"
 djangorestframework = ">=3.15,<4"
 fits2image = ">=0.4,<0.5"
@@ -2797,4 +2817,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10.0,<3.13"
-content-hash = "1c9dc46112472cee232cd3fb84325b1bec592785e44667b952687a19e97f1adb"
+content-hash = "0622b92f5493b37fce4527e1f1f6acaa31503962d96b3a150bd5f8280cb07b13"
