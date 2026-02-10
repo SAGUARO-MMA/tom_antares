@@ -1,7 +1,6 @@
 [project]
 name = "tom-antares"
-version = "0.0.0" # version supplied by poetry-dynamic-versioning
-description = "'Antares broker module for the TOM Toolkit'"
+description = "Antares Data Service module for the TOM Toolkit"
 authors = [
     {name = "TOM Toolkit Project", email = "tomtoolkit-maintainers@lco.global"},
 ]
@@ -12,6 +11,7 @@ maintainers = [
 ]
 license = {text = "GPL-3.0-only"}
 readme = "README.md"
+repository = "https://github.com/TOMToolkit/tom_antares"
 dynamic = ["version"]
 requires-python = ">=3.10.0,<3.13"
 dependencies = [
@@ -19,6 +19,9 @@ dependencies = [
     "antares-client (>=1.11.1,<2.0.0)",
     "elasticsearch-dsl (>=8.18.0,<9.0.0)"
 ]
+
+[tool.poetry]
+version = "0.0.0" # version supplied by poetry-dynamic-versioning
 
 [tool.poetry.group.test.dependencies]
 factory_boy = ">3.2.1,<3.4"
@@ -47,5 +50,5 @@ pattern = "(?x)^[v]?((?P<epoch>\\d+)!)?(?P<base>\\d+(\\.\\d+)*)([-._]?((?P<stage
 [tool.poetry-dynamic-versioning.substitution]
 
 [build-system]
-requires = ["poetry-core >=1.0.0", "poetry-dynamic-versioning >=1.0.0, <2.0.0"]
+requires = ["poetry-core >=2.0.0, <3.0.0"]
 build-backend = "poetry_dynamic_versioning.backend"
