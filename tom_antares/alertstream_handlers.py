@@ -13,31 +13,18 @@ from .antares import ANTARESBroker
 
 logger = logging.getLogger(__name__)
 
-def find_existing_targets(locus, cone_search_radius_arcsec:float=2) -> QuerySet:
-    """
-    Look for an existing target at the same coordinates as the input target
-    """
-
-    try:
-        cone_search_radius = settings.CONE_SEARCH_RADIUS/3600
-    except AttributeError:
-        cone_search_radius = cone_search_radius_arcsec/3600
-        logger.warning(f"Setting the cone search radius to {cone_search_radius_arcsec} arcsec! Set settings.CONE_SEARCH_RADIUS if you would like to use a different value.")
-        
-    return cone_search_filter(
-        queryset = Target.objects.all(),
-        ra = locus.ra,
-        dec = locus.dec,
-        radius = cone_search_radius
-    )
+try:
+    CONE_SEARCH_RADIUS_ARCSEC = settings.CONE_SEARCH_RADIUS
+except AttributeError:
+    CONE_SEARCH_RADIUS_ARCSEC = 2.
 
 
 def handle_alert(locus):
     """
     Ingests the locus into a new target object (or updates an existing one)
     """
-    target_matches = find_existing_targets(locus)
-    logger.info(f"Target matches: {target_matches}")
+    target_matches = cone_search_filter(Target.objects.all(), locus.ra, locus.dec, CONE_SEARCH_RADIUS_ARCSEC / 3600.)
+    logger.info(f"Targets within {CONE_SEARCH_RADIUS_ARCSEC:.1f} arcsec: {target_matches}")
     
     broker = ANTARESBroker()
     alert = broker.alert_to_dict(locus)
@@ -45,7 +32,6 @@ def handle_alert(locus):
     if target_matches.count():
         # then this target already exists in the Targets table
         target = target_matches.order_by("separation").first()
-
         logger.info(f"Found existing target matching this alert: {target.name}")
         created = False
         
@@ -54,8 +40,8 @@ def handle_alert(locus):
         
     else:
         # then this target does not exist, so we create it from scratch
-        logger.info(f"No existing target found, adding as new target")
         target, _, aliases = broker.to_target(alert)
+        logger.info(f"No existing target found, adding {target.name} as new target")
         created = True
         
     broker.process_reduced_data(target, alert)
@@ -68,19 +54,14 @@ def handle_alert(locus):
         if not existing_alias.exists():
             alias.save()
             aliases_added.append(alias.name)
-        elif TargetName.objects.filter(
-            name=alias.name
-        ).exclude(
-            target=target
-        ).exists():
+        elif existing_alias.exclude(target=target).exists():
             # this will happen if the alias exists under a different target
             # than the one we are trying to save it with
             # in which case we should log a warning
             logger.warning(
-                f"The name alias {alias.name} exists under the target " +
-                f" {existing_alias.first().target}, which is different from the nearest " + 
-                f"target in the existing database (which is {target}). We are "+
-                "NOT re-assigning this alias!"
+                f"The name alias {alias.name} exists under the target {existing_alias.first().target}, "
+                f"which is different from the nearest target in the existing database (which is {target}). "
+                "We are NOT re-assigning this alias!"
             )
     
     return target, created, aliases_added
