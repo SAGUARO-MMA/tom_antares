@@ -623,6 +623,10 @@ class AntaresDataService(DataService):
         self.query_parameters = data
         return data
 
+    def build_query_parameters_from_target(self, target, **kwargs):
+        parameters = {'antid': target.name}
+        return self.build_query_parameters(parameters)
+
     def query_service(self, data, **kwargs):
         if data.get('ztfid'):
             self.query_results = get_by_ztf_object_id(data['ztfid'])
