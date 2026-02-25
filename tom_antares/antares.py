@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from crispy_forms.layout import HTML, Div, Fieldset, Layout
 from django import forms
 
-from tom_dataservices.dataservices import DataService
+from tom_dataservices.dataservices import DataService, QueryServiceError
 from tom_antares import __version__
 from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_targets.models import Target, TargetName
@@ -624,22 +624,39 @@ class AntaresDataService(DataService):
         return data
 
     def build_query_parameters_from_target(self, target, **kwargs):
-        parameters = {'antid': target.name}
+        """
+        This is a method that builds query parameters based on an existing target object that will be recognized by
+        `query_service()`.
+        This can be done by either by re-creating the form fields set by the Data Service Form and then calling
+        `self.build_query_parameters()` with the results, or we can reproduce a limited set of parameters uniquely for
+        a target query.
+
+        :param target: A target object to be queried
+        :return: query_parameters (usually a dict) that can be understood by `query_service()`
+        """
+
+        if 'ZTF' in target.name[0:3]:
+            parameters = {'ztfid': target.name}
+        else:
+            parameters = {'antid': target.name}
         return self.build_query_parameters(parameters)
 
     def query_service(self, data, **kwargs):
-        if data.get('ztfid'):
-            self.query_results = get_by_ztf_object_id(data['ztfid'])
+        try:
+            if data.get('ztfid'):
+                self.query_results = get_by_ztf_object_id(data['ztfid'])
+                return self.query_results
+            elif data.get('antid'):
+                self.query_results = get_by_id(data['antid'])
+                return self.query_results
+            elif data.get('elsquery'):
+                self.query_results = antares_client.search.search(data['elsquery'])
+                return self.query_results
+            filter_query = {'query': {'bool': {'filter': data.get('filters', [])}}}
+            self.query_results = antares_client.search.search(filter_query)
             return self.query_results
-        elif data.get('antid'):
-            self.query_results = get_by_id(data['antid'])
-            return self.query_results
-        elif data.get('elsquery'):
-            self.query_results = antares_client.search.search(data['elsquery'])
-            return self.query_results
-        filter_query = {'query': {'bool': {'filter': data.get('filters', [])}}}
-        self.query_results = antares_client.search.search(filter_query)
-        return self.query_results
+        except Exception as e:
+            raise QueryServiceError(e)
 
     def query_targets(self, data):
         loci = self.query_service(data)
