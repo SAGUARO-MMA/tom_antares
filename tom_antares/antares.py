@@ -541,7 +541,7 @@ class ANTARESBroker(GenericBroker):
             timestamp=timestamp,
             url=url,
             id=alert['locus_id'],
-            name=alert['properties']['ztf_object_id'],
+            name=alert['locus_id'],
             ra=alert['ra'],
             dec=alert['dec'],
             mag=alert['properties'].get('newest_alert_magnitude', ''),
