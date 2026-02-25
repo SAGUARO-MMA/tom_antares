@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 from crispy_forms.layout import HTML, Div, Fieldset, Layout
 from django import forms
 
-from tom_dataservices.dataservices import BaseDataService
+from tom_dataservices.dataservices import DataService
 from tom_alerts.alerts import GenericAlert, GenericBroker, GenericQueryForm
 from tom_targets.models import Target, TargetName
 from tom_dataproducts.models import ReducedDatum
@@ -549,7 +549,7 @@ class ANTARESBroker(GenericBroker):
         )
 
 
-class AntaresDataService(BaseDataService):
+class AntaresDataService(DataService):
     """
         The ``AntaresDataService``
     """
