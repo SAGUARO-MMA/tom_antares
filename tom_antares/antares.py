@@ -480,6 +480,7 @@ class ANTARESBroker(GenericBroker):
         if alert is None:
             return
 
+        reduced_datums = []
         for datum in alert['alerts']:
             value = {
                 'limit': datum['properties']['ant_maglim'],
@@ -489,13 +490,14 @@ class ANTARESBroker(GenericBroker):
                 value['magnitude'] = datum['properties']['ant_mag']
             if 'ant_magerr' in datum['properties']:
                 value['error'] = datum['properties']['ant_magerr']
-            ReducedDatum.objects.get_or_create(
+            reduced_datums.append(ReducedDatum(
                 target=target,
                 timestamp=Time(datum['properties']['ant_mjd'], format='mjd').to_datetime(timezone=TimezoneInfo()),
                 data_type='photometry',
                 source_name=f"{self.surveys[datum['properties']['ant_survey']]} (ANTARES)",
                 value=value,
-            )
+            ))
+        ReducedDatum.objects.bulk_create(reduced_datums, ignore_conflicts=True)
 
     def to_target(self, alert: dict) -> Tuple[Target, Dict[str, str], List[str]]:
         """Create a target and aliases from an alert"""
