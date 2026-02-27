@@ -23,15 +23,15 @@ def handle_alert(locus):
     """
     Ingests the locus into a new target object (or updates an existing one)
     """
-    target_matches = cone_search_filter(Target.objects.all(), locus.ra, locus.dec, CONE_SEARCH_RADIUS_ARCSEC / 3600.)
+    target_matches = list(cone_search_filter(Target.objects.all(), locus.ra, locus.dec, CONE_SEARCH_RADIUS_ARCSEC / 3600.).order_by("separation"))
     logger.info(f"Targets within {CONE_SEARCH_RADIUS_ARCSEC:.1f} arcsec: {target_matches}")
-    
+
     broker = ANTARESBroker()
     alert = broker.alert_to_dict(locus)
 
-    if target_matches.count():
+    if target_matches:
         # then this target already exists in the Targets table
-        target = target_matches.order_by("separation").first()
+        target = target_matches[0]
         logger.info(f"Found existing target matching this alert: {target.name}")
         created = False
         
@@ -63,5 +63,5 @@ def handle_alert(locus):
                 f"which is different from the nearest target in the existing database (which is {target}). "
                 "We are NOT re-assigning this alias!"
             )
-    
+
     return target, created, aliases_added
