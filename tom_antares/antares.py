@@ -527,11 +527,11 @@ class AntaresDataService(DataService):
 
     def get_simple_form_partial(self):
         """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
-        return 'tom_antares/partials/antares_simple_form'
+        return 'tom_antares/partials/antares_simple_form.html'
 
     def get_advanced_form_partial(self):
         """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
-        return 'tom_antares/partials/antares_advanced_form'
+        return 'tom_antares/partials/antares_advanced_form.html'
 
     def build_query_parameters(self, parameters, **kwargs):
         data = {
