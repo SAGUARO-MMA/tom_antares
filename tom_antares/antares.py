@@ -525,13 +525,6 @@ class AntaresDataService(DataService):
     def get_form_class(cls):
         return AntaresForm
 
-    def get_simple_form_partial(self):
-        """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
-        return 'tom_antares/partials/antares_simple_form.html'
-
-    def get_advanced_form_partial(self):
-        """Returns a path to a simplified bare-minimum partial form that can be used to access the DataService."""
-        return 'tom_antares/partials/antares_advanced_form.html'
 
     def build_query_parameters(self, parameters, **kwargs):
         data = {
@@ -725,7 +718,7 @@ class AntaresDataService(DataService):
             aliases.append(TargetName(name=alias))
         return aliases
 
-    def create_reduced_datums_from_query(self, target, data=None, data_type='photometry', **kwargs):
+    def create_reduced_datums_from_query(self, target, data, data_type='photometry', **kwargs):
         """Create and save new reduced_datums of the appropriate data_type from the query results"""
 
         reduced_datums = []

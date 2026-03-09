@@ -92,3 +92,6 @@ class AntaresForm(BaseQueryForm):
         min_value=1,
         initial=20,
     )
+
+    def simple_fields(self):
+        return ['antid']
