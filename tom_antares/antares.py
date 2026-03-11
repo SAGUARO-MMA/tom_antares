@@ -4,6 +4,7 @@ from typing import List, Tuple, Dict
 
 import antares_client
 import marshmallow
+import numpy as np
 from antares_client.search import get_available_tags, get_by_ztf_object_id, get_by_id
 from astropy.time import Time, TimezoneInfo
 from datetime import datetime, timezone
@@ -482,14 +483,15 @@ class ANTARESBroker(GenericBroker):
 
         reduced_datums = []
         for datum in alert['alerts']:
-            value = {
-                'limit': datum['properties']['ant_maglim'],
-                'filter': datum['properties']['ant_passband'],
-            }
-            if 'ant_mag' in datum['properties']:
+            if np.isnan(float(datum['properties']['ant_mag'])) and np.isnan(float(datum['properties']['ant_maglim'])):
+                continue
+            value = {'filter': datum['properties']['ant_passband']}
+            if 'ant_mag' in datum['properties'] and np.isfinite(float(datum['properties']['ant_mag'])):
                 value['magnitude'] = datum['properties']['ant_mag']
-            if 'ant_magerr' in datum['properties']:
+            if 'ant_magerr' in datum['properties'] and np.isfinite(float(datum['properties']['ant_magerr'])):
                 value['error'] = datum['properties']['ant_magerr']
+            if 'ant_maglim' in datum['properties'] and np.isfinite(float(datum['properties']['ant_maglim'])):
+                value['limit'] = datum['properties']['ant_maglim']
             reduced_datums.append(ReducedDatum(
                 target=target,
                 timestamp=Time(datum['properties']['ant_mjd'], format='mjd').to_datetime(timezone=TimezoneInfo()),
