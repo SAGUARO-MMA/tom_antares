@@ -14,14 +14,14 @@ files = [
 
 [[package]]
 name = "antares-client"
-version = "1.13.0"
+version = "1.14.0"
 description = "A light-weight client for receiving alerts from ANTARES."
 optional = false
 python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "antares_client-1.13.0-py3-none-any.whl", hash = "sha256:3bbdcf12e1b701b22ed545d96451d6d04f421992bbcb4daf9caf4e5d75f4a5df"},
-    {file = "antares_client-1.13.0.tar.gz", hash = "sha256:2d62a53f5d3b37ce134ee42adc4cbecb93a854db1ad5cd6ea22aa7fc2796db82"},
+    {file = "antares_client-1.14.0-py3-none-any.whl", hash = "sha256:717055d29f7da9c69a4982dfc853c8c149dd01d69d60b52fdc9aa3e18f077407"},
+    {file = "antares_client-1.14.0.tar.gz", hash = "sha256:66f09746731f08bd03cd971d70e76a7a1aebd1f8618dd57baba285b80e1c207a"},
 ]
 
 [package.dependencies]
@@ -39,7 +39,7 @@ typing-extensions = "*"
 [package.extras]
 dev = ["black", "isort", "pylint"]
 docs = ["sphinx", "sphinx-click"]
-subscriptions = ["confluent_kafka (==1.7.0)"]
+subscriptions = ["confluent_kafka (>=1.7.0,<=2.13.0)"]
 test = ["coverage (==7.2.7)", "pytest", "pytest-cov", "requests-mock"]
 
 [[package]]
