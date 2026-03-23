@@ -627,11 +627,17 @@ class AntaresDataService(DataService):
         :return: query_parameters (usually a dict) that can be understood by `query_service()`
         """
 
-        if 'ZTF' in target.name[0:3]:
-            parameters = {'ztfid': target.name}
-        else:
-            parameters = {'antid': target.name}
-        return self.build_query_parameters(parameters)
+        for name in target.names:
+            if name.startswith('ZTF'):
+                parameters = {'ztfid': name}
+                return self.build_query_parameters(parameters)
+            elif target.name.startswith('ANT'):
+                parameters = {'antid': name}
+                return self.build_query_parameters(parameters)
+            else:
+                continue
+        raise QueryServiceError(f"{self.name} Dataservice doesn't recognize {target.name} as a searchable target name.")
+
 
     def query_service(self, data, **kwargs):
         try:
