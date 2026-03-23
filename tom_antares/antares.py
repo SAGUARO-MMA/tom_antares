@@ -638,7 +638,6 @@ class AntaresDataService(DataService):
                 continue
         raise QueryServiceError(f"{self.name} Dataservice doesn't recognize {target.name} as a searchable target name.")
 
-
     def query_service(self, data, **kwargs):
         try:
             if data.get('ztfid'):
