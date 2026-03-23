@@ -525,7 +525,6 @@ class AntaresDataService(DataService):
     def get_form_class(cls):
         return AntaresForm
 
-
     def build_query_parameters(self, parameters, **kwargs):
         data = {
             'ztfid': parameters.get('ztfid'),
