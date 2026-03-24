@@ -632,13 +632,13 @@ class AntaresDataService(DataService):
         for name in target.names:
             if name.startswith('ZTF'):
                 parameters = {'ztfid': name}
-                return self.build_query_parameters(parameters)
+                break
             elif target.name.startswith('ANT'):
                 parameters = {'antid': name}
-                return self.build_query_parameters(parameters)
-            else:
-                continue
-        raise QueryServiceError(f"{self.name} Dataservice doesn't recognize {target.name} as a searchable target name.")
+                break
+        else:
+            parameters = {'ra': target.ra, 'dec': target.dec, 'sr': 1. / 3600.}  # hardcoding 1 arcsec for now
+        return self.build_query_parameters(parameters)
 
     def query_service(self, data, **kwargs):
         try:
