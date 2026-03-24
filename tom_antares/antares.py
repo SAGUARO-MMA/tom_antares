@@ -17,6 +17,7 @@ from tom_targets.models import Target, TargetName
 from tom_dataproducts.models import ReducedDatum
 
 from tom_antares.forms import AntaresForm
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -730,9 +731,15 @@ class AntaresDataService(DataService):
         reduced_datums = []
         for datum in data:
             datum_details = dict(datum)
-            datum_details['magnitude'] = datum['ant_mag']
-            datum_details['error'] = datum['ant_magerr']
-            datum_details['limit'] = datum['ant_maglim']
+            if (not (isinstance(datum['ant_mag'], float) and np.isfinite(datum['ant_mag']))
+                    and not (isinstance(datum['ant_maglim'], float) and np.isfinite(datum['ant_maglim']))):
+                continue
+            if isinstance(datum['ant_mag'], float) and np.isfinite(datum['ant_mag']):
+                datum_details['magnitude'] = datum['ant_mag']
+            if isinstance(datum['ant_magerr'], float) and np.isfinite(datum['ant_magerr']):
+                datum_details['error'] = datum['ant_magerr']
+            if isinstance(datum['ant_maglim'], float) and np.isfinite(datum['ant_maglim']):
+                datum_details['limit'] = datum['ant_maglim']
             datum_details['filter'] = datum['ant_passband']
 
             reduced_datum, __ = ReducedDatum.objects.get_or_create(
