@@ -50,5 +50,5 @@ pattern = "(?x)^[v]?((?P<epoch>\\d+)!)?(?P<base>\\d+(\\.\\d+)*)([-._]?((?P<stage
 [tool.poetry-dynamic-versioning.substitution]
 
 [build-system]
-requires = ["poetry-core >=2.0.0, <3.0.0"]
+requires = ["poetry-core >=2.0.0, <3.0.0", "poetry-dynamic-versioning >=0.22.0"]
 build-backend = "poetry_dynamic_versioning.backend"
