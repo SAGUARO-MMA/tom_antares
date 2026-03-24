@@ -156,7 +156,7 @@ class TestAntaresDataservice(TestCase):
     @mock.patch('tom_antares.antares.get_by_id')
     def test_query_aliases(self, mock_client):
         mock_client.side_effect = [self.locus]
-        aliases = self.antares_query.query_aliases({'antid': 'Ant_name'})
+        aliases = self.antares_query.query_aliases(query_parameters={'antid': 'Ant_name'})
         self.assertEqual(aliases, [self.locus.properties.get('ztf_object_id')])
 
     @mock.patch('tom_antares.antares.get_by_id')
