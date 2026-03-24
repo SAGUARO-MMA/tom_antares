@@ -748,7 +748,7 @@ class AntaresDataService(DataService):
                 datum_details['limit'] = datum['ant_maglim']
             datum_details['filter'] = datum['ant_passband']
 
-            reduced_datum, __ = ReducedDatum.objects.get_or_create(
+            reduced_datum = ReducedDatum(
                 target=target,
                 timestamp=Time(datum['time'], format='iso', scale='utc').to_datetime(TimezoneInfo()),
                 data_type=data_type,
@@ -756,4 +756,5 @@ class AntaresDataService(DataService):
                 value=datum_details
             )
             reduced_datums.append(reduced_datum)
+        ReducedDatum.objects.bulk_create(reduced_datums, ignore_conflicts=True)
         return reduced_datums
