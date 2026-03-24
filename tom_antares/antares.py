@@ -523,6 +523,12 @@ class AntaresDataService(DataService):
     info_url = 'https://nsf-noirlab.gitlab.io/csdc/antares/client/tutorial/searching.html'
     app_version = __version__
     app_link = 'https://github.com/TOMToolkit/tom_antares'
+    surveys = {
+        1: 'ZTF',
+        2: 'ZTF',
+        3: 'DECAT',
+        4: 'LSST',
+    }  # see antares_devkit.models.SURVEYS
 
     @classmethod
     def get_form_class(cls):
@@ -746,7 +752,7 @@ class AntaresDataService(DataService):
                 target=target,
                 timestamp=Time(datum['time'], format='iso', scale='utc').datetime,
                 data_type=data_type,
-                source_name='Antares',
+                source_name=f"{self.surveys[datum['properties']['ant_survey']]} (ANTARES)",
                 value=datum_details
             )
             reduced_datums.append(reduced_datum)
