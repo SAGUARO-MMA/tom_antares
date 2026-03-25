@@ -141,7 +141,7 @@ class TestAntaresDataservice(TestCase):
                                    'dec': self.locus.dec,
                                    'mag': '',
                                    'tags': [],
-                                   'aliases': [self.locus.properties.get('ztf_object_id')],
+                                   'aliases': [self.locus.locus_id, self.locus.properties.get('ztf_object_id')],
                                    'reduced_datums': {'photometry': lightcurve_data}}
         for target in targets:
             for key in target.keys():
@@ -156,8 +156,8 @@ class TestAntaresDataservice(TestCase):
     @mock.patch('tom_antares.antares.get_by_id')
     def test_query_aliases(self, mock_client):
         mock_client.side_effect = [self.locus]
-        aliases = self.antares_query.query_aliases({'antid': 'Ant_name'})
-        self.assertEqual(aliases, [self.locus.properties.get('ztf_object_id')])
+        aliases = self.antares_query.query_aliases(query_parameters={'antid': 'Ant_name'})
+        self.assertEqual(aliases, [self.locus.locus_id, self.locus.properties.get('ztf_object_id')])
 
     @mock.patch('tom_antares.antares.get_by_id')
     def test_query_photometry(self, mock_client):

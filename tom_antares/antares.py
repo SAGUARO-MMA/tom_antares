@@ -676,11 +676,16 @@ class AntaresDataService(DataService):
         self.target_results = targets
         return targets
 
-    def query_aliases(self, query_parameters, locus=None, **kwargs):
+    def query_aliases(self, query_parameters=None, target=None, locus=None, **kwargs):
         """Set up and run a specialized query for retrieving alternate names from a DataService."""
         if not locus:
-            locus = self.query_results or self.query_service(query_parameters)
+            locus = self.query_results
+        if not locus:
+            locus = self.query_service(query_parameters)
+        if not locus:
+            locus = self.query_service(self.build_query_parameters_from_target(target))
         aliases = []
+        aliases.append(locus.locus_id)
         for id_key in ['ztf_object_id']:
             alias = locus.properties.get(id_key)
             if alias:
@@ -711,16 +716,6 @@ class AntaresDataService(DataService):
             dec=target_result['dec']
         )
         return target
-
-    def create_aliases_from_query(self, alias_results, **kwargs):
-        """Create new TargetNames from the query results
-        :returns: list of aliases to be added to a new Target
-        :rtype: `list`
-        """
-        aliases = []
-        for alias in alias_results:
-            aliases.append(TargetName(name=alias))
-        return aliases
 
     def create_reduced_datums_from_query(self, target, data, data_type='photometry', **kwargs):
         """Create and save new reduced_datums of the appropriate data_type from the query results"""
