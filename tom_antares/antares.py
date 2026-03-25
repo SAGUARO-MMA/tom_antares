@@ -17,6 +17,7 @@ from tom_targets.models import Target, TargetName
 from tom_dataproducts.models import ReducedDatum
 
 from tom_antares.forms import AntaresForm
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -94,12 +95,14 @@ class ANTARESBrokerForm(GenericQueryForm):
         label='RA',
         widget=forms.TextInput(attrs={'placeholder': 'RA (Degrees)'}),
         min_value=0.0,
+        max_value=360.,
     )
     dec = forms.FloatField(
         required=False,
         label='Dec',
         widget=forms.TextInput(attrs={'placeholder': 'Dec (Degrees)'}),
-        min_value=0.0,
+        min_value=-90.,
+        max_value=90.,
     )
     sr = forms.FloatField(
         required=False,
@@ -520,6 +523,12 @@ class AntaresDataService(DataService):
     info_url = 'https://nsf-noirlab.gitlab.io/csdc/antares/client/tutorial/searching.html'
     app_version = __version__
     app_link = 'https://github.com/TOMToolkit/tom_antares'
+    surveys = {
+        1: 'ZTF',
+        2: 'ZTF',
+        3: 'DECAT',
+        4: 'LSST',
+    }  # see antares_devkit.models.SURVEYS
 
     @classmethod
     def get_form_class(cls):
@@ -630,13 +639,13 @@ class AntaresDataService(DataService):
         for name in target.names:
             if name.startswith('ZTF'):
                 parameters = {'ztfid': name}
-                return self.build_query_parameters(parameters)
+                break
             elif target.name.startswith('ANT'):
                 parameters = {'antid': name}
-                return self.build_query_parameters(parameters)
-            else:
-                continue
-        raise QueryServiceError(f"{self.name} Dataservice doesn't recognize {target.name} as a searchable target name.")
+                break
+        else:
+            parameters = {'ra': target.ra, 'dec': target.dec, 'sr': 1. / 3600.}  # hardcoding 1 arcsec for now
+        return self.build_query_parameters(parameters)
 
     def query_service(self, data, **kwargs):
         try:
@@ -723,17 +732,24 @@ class AntaresDataService(DataService):
         reduced_datums = []
         for datum in data:
             datum_details = dict(datum)
-            datum_details['magnitude'] = datum['ant_mag']
-            datum_details['error'] = datum['ant_magerr']
-            datum_details['limit'] = datum['ant_maglim']
+            if (not (isinstance(datum['ant_mag'], float) and np.isfinite(datum['ant_mag']))
+                    and not (isinstance(datum['ant_maglim'], float) and np.isfinite(datum['ant_maglim']))):
+                continue
+            if isinstance(datum['ant_mag'], float) and np.isfinite(datum['ant_mag']):
+                datum_details['magnitude'] = datum['ant_mag']
+            if isinstance(datum['ant_magerr'], float) and np.isfinite(datum['ant_magerr']):
+                datum_details['error'] = datum['ant_magerr']
+            if isinstance(datum['ant_maglim'], float) and np.isfinite(datum['ant_maglim']):
+                datum_details['limit'] = datum['ant_maglim']
             datum_details['filter'] = datum['ant_passband']
 
-            reduced_datum, __ = ReducedDatum.objects.get_or_create(
+            reduced_datum, _ = ReducedDatum.objects.get_or_create(
                 target=target,
-                timestamp=Time(datum['time'], format='iso', scale='utc').datetime,
+                timestamp=Time(datum['time'], format='iso', scale='utc').to_datetime(TimezoneInfo()),
                 data_type=data_type,
-                source_name='Antares',
+                source_name=f"{self.surveys[datum['ant_survey']]} ({self.name})",
                 value=datum_details
             )
             reduced_datums.append(reduced_datum)
+
         return reduced_datums
