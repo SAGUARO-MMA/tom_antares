@@ -185,10 +185,10 @@ class TestAntaresDataservice(TestCase):
 
     def test_create_reduced_datums_from_query(self):
         reduced_data = self.antares_query.create_reduced_datums_from_query(self.test_target, lightcurve_data)
-        keys_list = [('ant_mag','magnitude'),
-                     ('ant_magerr','error'),
+        keys_list = [('ant_mag', 'magnitude'),
+                     ('ant_magerr', 'error'),
                      ('ant_maglim', 'limit'),
-                     ('ant_passband','filter')]
+                     ('ant_passband', 'filter')]
         for i, reduced_datum in enumerate(reduced_data):
             for key in keys_list:
                 if lightcurve_data[i][key[0]]:
