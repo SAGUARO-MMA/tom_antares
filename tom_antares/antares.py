@@ -730,6 +730,7 @@ class AntaresDataService(DataService):
         """Create and save new reduced_datums of the appropriate data_type from the query results"""
 
         reduced_datums = []
+        existing_timestamps = list(target.reduceddatum_set.filter(data_type=data_type).values_list('timestamp', flat=True))
         for datum in data:
             datum_details = dict(datum)
             if (not (isinstance(datum['ant_mag'], float) and np.isfinite(datum['ant_mag']))
@@ -743,13 +744,15 @@ class AntaresDataService(DataService):
                 datum_details['limit'] = datum['ant_maglim']
             datum_details['filter'] = datum['ant_passband']
 
-            reduced_datum, _ = ReducedDatum.objects.get_or_create(
+            reduced_datum = ReducedDatum(
                 target=target,
                 timestamp=Time(datum['time'], format='iso', scale='utc').to_datetime(TimezoneInfo()),
                 data_type=data_type,
                 source_name=f"{self.surveys[datum['ant_survey']]} ({self.name})",
                 value=datum_details
             )
-            reduced_datums.append(reduced_datum)
+            if reduced_datum.timestamp not in existing_timestamps:
+                reduced_datums.append(reduced_datum)
 
+        ReducedDatum.objects.bulk_create(reduced_datums)
         return reduced_datums
