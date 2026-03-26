@@ -664,6 +664,17 @@ class AntaresDataService(DataService):
         except Exception as e:
             raise QueryServiceError(e)
 
+    def serialize_locus(self, locus):
+        result = {'name': locus.locus_id,
+                  'ra': locus.ra,
+                  'dec': locus.dec,
+                  'mag': locus.properties.get('newest_alert_magnitude', ''),
+                  'tags': locus.tags,
+                  'aliases': self.query_aliases(data, locus=locus),
+                  'reduced_datums': {'photometry': self.query_photometry(data, locus)}
+                  }
+        return result
+
     def query_targets(self, data):
         loci = self.query_service(data)
         targets = []
@@ -671,14 +682,7 @@ class AntaresDataService(DataService):
             if isinstance(loci, antares_client.models.Locus):
                 loci = [loci]
             for i, locus in enumerate(loci):
-                result = {'name': locus.locus_id,
-                          'ra': locus.ra,
-                          'dec': locus.dec,
-                          'mag': locus.properties.get('newest_alert_magnitude', ''),
-                          'tags': locus.tags,
-                          'aliases': self.query_aliases(data, locus=locus),
-                          'reduced_datums': {'photometry': self.query_photometry(data, locus)}
-                          }
+                result = self.serialize_locus(locus)
                 targets.append(result)
                 if i+1 == data.get('max_objects', 20):
                     break
