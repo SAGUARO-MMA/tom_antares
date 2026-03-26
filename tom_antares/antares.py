@@ -515,6 +515,19 @@ class ANTARESBroker(GenericBroker):
         )
 
 
+def nan2str(obj):
+    """
+    Remove any NaN or Infinity from an object before JSON encoding
+    """
+    if isinstance(obj, dict):
+        return {k: nan2str(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [nan2str(v) for v in obj]
+    elif isinstance(obj, float) and not np.isfinite(obj):
+        return str(obj)
+    return obj
+
+
 class AntaresDataService(DataService):
     """
         The ``AntaresDataService``
@@ -673,7 +686,7 @@ class AntaresDataService(DataService):
                   'aliases': self.query_aliases(data, locus=locus),
                   'reduced_datums': {'photometry': self.query_photometry(data, locus)}
                   }
-        return result
+        return nan2str(result)
 
     def query_targets(self, data):
         loci = self.query_service(data)
